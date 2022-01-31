@@ -1,6 +1,7 @@
 package com.dev.acouplefarms.service.location;
 
 import com.dev.acouplefarms.models.location.Location;
+import com.dev.acouplefarms.models.location.LocationColumn;
 import com.dev.acouplefarms.models.relation.LocationColumnRelation;
 import java.util.Set;
 
@@ -14,4 +15,11 @@ public interface LocationService {
   Set<Location> getOrgLocations(final Long organizationId);
 
   LocationColumnRelation saveLocationColumnRelation();
+
+  LocationColumn saveLocationColumn(final LocationColumn locationColumn);
+
+  Set<LocationColumn> getLocationColumnsByOrganizationId(final Long organizationId);
+
+  LocationColumn getLocationColumnByNameKeyAndOrganizationId(
+      final String nameKey, final Long organizationId);
 }

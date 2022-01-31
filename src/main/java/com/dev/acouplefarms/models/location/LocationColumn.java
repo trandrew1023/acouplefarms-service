@@ -19,7 +19,7 @@ public class LocationColumn {
   @GeneratedValue(strategy = AUTO)
   private Long id;
 
-  private Long locationId;
+  private Long organizationId;
   private String name;
   private String nameKey;
   private Date createDate;

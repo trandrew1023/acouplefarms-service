@@ -2,6 +2,7 @@ package com.dev.acouplefarms.resource;
 
 import static com.dev.acouplefarms.util.StringUtil.scrubString;
 
+import com.dev.acouplefarms.models.location.LocationColumn;
 import com.dev.acouplefarms.models.organization.Organization;
 import com.dev.acouplefarms.models.organization.SaveOrganizationCriteria;
 import com.dev.acouplefarms.models.relation.UserOrgRelation;
@@ -99,7 +100,32 @@ public class OrganizationResource {
   }
 
   @GetMapping("/locations/{organizationId}")
-  public ResponseEntity<?> getOrgLocations(@PathVariable Long organizationId) {
+  public ResponseEntity<?> getOrgLocations(@PathVariable final Long organizationId) {
     return new ResponseEntity<>(locationService.getOrgLocations(organizationId), HttpStatus.OK);
+  }
+
+  @PostMapping("/location-column")
+  public ResponseEntity<?> saveLocationColumn(@RequestBody final LocationColumn locationColumn) {
+    final Long organizationId = locationColumn.getOrganizationId();
+    if (organizationService.getOrganizationById(organizationId).isEmpty()) {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+    final String nameKey = scrubString(locationColumn.getName());
+    if (locationService.getLocationByNameKeyAndOrganizationId(nameKey, organizationId) != null) {
+      return new ResponseEntity<>("name", HttpStatus.CONFLICT);
+    }
+    final Date curDate = Date.from(Instant.now());
+    locationColumn.setNameKey(nameKey);
+    locationColumn.setCreateDate(curDate);
+    locationColumn.setUpdateDate(curDate);
+    locationColumn.setActive(true);
+    locationService.saveLocationColumn(locationColumn);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
+
+  @GetMapping("location-columns/{organizationId}")
+  public ResponseEntity<?> getOrgLocationColumns(@PathVariable final Long organizationId) {
+    return new ResponseEntity<>(
+        locationService.getLocationColumnsByOrganizationId(organizationId), HttpStatus.OK);
   }
 }

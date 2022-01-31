@@ -1,7 +1,9 @@
 package com.dev.acouplefarms.service.location;
 
 import com.dev.acouplefarms.models.location.Location;
+import com.dev.acouplefarms.models.location.LocationColumn;
 import com.dev.acouplefarms.models.relation.LocationColumnRelation;
+import com.dev.acouplefarms.repository.LocationColumnRepository;
 import com.dev.acouplefarms.repository.LocationRepository;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class LocationServiceImpl implements LocationService {
 
+  private final LocationColumnRepository locationColumnRepository;
   private final LocationRepository locationRepository;
 
   @Override
@@ -39,5 +42,21 @@ public class LocationServiceImpl implements LocationService {
   @Override
   public LocationColumnRelation saveLocationColumnRelation() {
     return null;
+  }
+
+  @Override
+  public LocationColumn saveLocationColumn(final LocationColumn locationColumn) {
+    return locationColumnRepository.save(locationColumn);
+  }
+
+  @Override
+  public Set<LocationColumn> getLocationColumnsByOrganizationId(final Long organizationId) {
+    return locationColumnRepository.findByOrganizationId(organizationId);
+  }
+
+  @Override
+  public LocationColumn getLocationColumnByNameKeyAndOrganizationId(
+      final String nameKey, final Long organizationId) {
+    return locationColumnRepository.findByNameKeyAndOrganizationId(nameKey, organizationId);
   }
 }
