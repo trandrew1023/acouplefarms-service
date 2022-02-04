@@ -2,9 +2,12 @@ package com.dev.acouplefarms.service.location;
 
 import com.dev.acouplefarms.models.location.Location;
 import com.dev.acouplefarms.models.location.LocationColumn;
+import com.dev.acouplefarms.models.location.LocationStat;
 import com.dev.acouplefarms.models.relation.LocationColumnRelation;
 import com.dev.acouplefarms.repository.LocationColumnRepository;
 import com.dev.acouplefarms.repository.LocationRepository;
+import com.dev.acouplefarms.repository.LocationStatRepository;
+import java.util.Date;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,7 @@ public class LocationServiceImpl implements LocationService {
 
   private final LocationColumnRepository locationColumnRepository;
   private final LocationRepository locationRepository;
+  private final LocationStatRepository locationStatRepository;
 
   @Override
   public Location saveLocation(final Location location) {
@@ -58,5 +62,16 @@ public class LocationServiceImpl implements LocationService {
   public LocationColumn getLocationColumnByNameKeyAndOrganizationId(
       final String nameKey, final Long organizationId) {
     return locationColumnRepository.findByNameKeyAndOrganizationId(nameKey, organizationId);
+  }
+
+  @Override
+  public Set<LocationStat> getLocationStatsByLocationIdAndDate(
+      final Long locationId, final Date date) {
+    return locationStatRepository.findByLocationIdAndDate(locationId, date);
+  }
+
+  @Override
+  public void saveLocationStats(final Set<LocationStat> locationStats) {
+    locationStatRepository.saveAll(locationStats);
   }
 }

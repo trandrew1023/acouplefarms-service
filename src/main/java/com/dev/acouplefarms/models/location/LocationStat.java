@@ -1,26 +1,24 @@
 package com.dev.acouplefarms.models.location;
 
-import static javax.persistence.GenerationType.AUTO;
-
 import java.util.Date;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.IdClass;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 
 @Entity
 @Data
+@DynamicUpdate
 @NoArgsConstructor
 @AllArgsConstructor
+@IdClass(LocationStatId.class)
 public class LocationStat {
-  @Id
-  @GeneratedValue(strategy = AUTO)
-  private Long id;
-
-  private Long locationColumnId;
+  @Id private Long locationId;
+  @Id private Long locationColumnId;
   private String value;
-  private Date createDate;
+  @Id private Date date;
   private Date updateDate;
 }

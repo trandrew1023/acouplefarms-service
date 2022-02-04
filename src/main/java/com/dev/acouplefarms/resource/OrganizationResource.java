@@ -2,7 +2,12 @@ package com.dev.acouplefarms.resource;
 
 import static com.dev.acouplefarms.util.StringUtil.scrubString;
 
+import com.dev.acouplefarms.models.location.Location;
 import com.dev.acouplefarms.models.location.LocationColumn;
+import com.dev.acouplefarms.models.location.LocationStat;
+import com.dev.acouplefarms.models.location.LocationStatResponse;
+import com.dev.acouplefarms.models.location.LocationStatsCriteria;
+import com.dev.acouplefarms.models.location.SaveLocationStatsCriteria;
 import com.dev.acouplefarms.models.organization.Organization;
 import com.dev.acouplefarms.models.organization.SaveOrganizationCriteria;
 import com.dev.acouplefarms.models.relation.UserOrgRelation;
@@ -12,11 +17,14 @@ import com.dev.acouplefarms.service.organization.OrganizationService;
 import com.dev.acouplefarms.service.user.UserService;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -123,9 +131,55 @@ public class OrganizationResource {
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 
-  @GetMapping("location-columns/{organizationId}")
+  @GetMapping("/location-columns/{organizationId}")
   public ResponseEntity<?> getOrgLocationColumns(@PathVariable final Long organizationId) {
     return new ResponseEntity<>(
         locationService.getLocationColumnsByOrganizationId(organizationId), HttpStatus.OK);
+  }
+
+  @GetMapping("/location-stats/{organizationId}/{date}")
+  public ResponseEntity<?> getOrgLocationStats(
+      @PathVariable final Long organizationId,
+      @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) final Date date) {
+    final Set<Location> locations = locationService.getOrgLocations(organizationId);
+    final Set<LocationStatResponse> locationStatsResponse = new HashSet<>();
+    for (final Location location : locations) {
+      final String locationName = location.getName();
+      final Set<LocationStat> locationStats =
+          locationService.getLocationStatsByLocationIdAndDate(location.getId(), date);
+      final Map<Long, String> locationColumnIdToValue = new HashMap<>();
+      for (final LocationStat locationStat : locationStats) {
+        locationColumnIdToValue.put(locationStat.getLocationColumnId(), locationStat.getValue());
+      }
+      locationStatsResponse.add(
+          new LocationStatResponse(
+              location.getId(), location.getId(), locationName, locationColumnIdToValue));
+    }
+    return new ResponseEntity<>(locationStatsResponse, HttpStatus.OK);
+  }
+
+  @PostMapping("/location-stats/{organizationId}")
+  public ResponseEntity<?> saveOrgLocationStats(
+      @PathVariable final Long organizationId,
+      @RequestBody SaveLocationStatsCriteria saveLocationStatsCriteria) {
+    final Set<LocationStat> locationStatsToSave = new HashSet<>();
+    final Date date = saveLocationStatsCriteria.getDate();
+    final Date curDate = Date.from(Instant.now());
+    for (final LocationStatsCriteria locationStatsCriteria :
+        saveLocationStatsCriteria.getLocationStatsCriteria()) {
+      final Long locationId = locationStatsCriteria.getLocationId();
+      for (final Map.Entry<Long, String> locationColumnIdToValue :
+          locationStatsCriteria.getLocationColumnIdToValue().entrySet()) {
+        locationStatsToSave.add(
+            new LocationStat(
+                locationId,
+                locationColumnIdToValue.getKey(),
+                locationColumnIdToValue.getValue(),
+                date,
+                curDate));
+      }
+    }
+    locationService.saveLocationStats(locationStatsToSave);
+    return new ResponseEntity<>(HttpStatus.OK);
   }
 }
