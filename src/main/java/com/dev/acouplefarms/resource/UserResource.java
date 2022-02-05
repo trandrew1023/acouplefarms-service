@@ -70,7 +70,7 @@ public class UserResource {
   public ResponseEntity<Set<UserResponse>> searchUsersByUsername(@PathVariable String username) {
     final Set<UserResponse> users =
         userService.searchByUsername(username).stream()
-            .map(user -> new UserResponse(user))
+            .map(UserResponse::new)
             .collect(Collectors.toSet());
     return ResponseEntity.ok().body(users);
   }

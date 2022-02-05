@@ -18,7 +18,11 @@ public interface UserService {
 
   Set<User> searchByUsername(final String username);
 
+  Set<User> getUsersByIds(final Set<Long> userIds);
+
   AuthorityRole saveRole(final AuthorityRole role);
+
+  UserOrgRelation getUserOrgRelation(final Long userId, final Long organizationId);
 
   void saveUserOrganizationRelation(final UserOrgRelation userOrgRelation);
 

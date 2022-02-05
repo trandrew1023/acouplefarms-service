@@ -17,12 +17,14 @@ import java.util.Set;
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Log4j2
 public class OrganizationServiceImpl implements OrganizationService {
 
   private final LocationRepository locationRepository;
@@ -57,13 +59,19 @@ public class OrganizationServiceImpl implements OrganizationService {
   }
 
   @Override
+  public Set<UserOrgRelation> getUserOrgRelationsByOrganizationId(final Long organizationId) {
+    log.info(userOrgRelationRepository.findByOrganizationId(organizationId));
+    return userOrgRelationRepository.findByOrganizationId(organizationId);
+  }
+
+  @Override
   public Optional<Organization> getOrganizationById(final Long id) {
     return organizationRepository.findById(id);
   }
 
   @Override
   public Set<OrganizationResponse> getOrganizationsByUserId(final long userId) {
-    final Set<UserOrgRelation> userOrgRelations = userOrgRelationRepository.findByUserId(userId);
+    final Set<UserOrgRelation> userOrgRelations = userOrgRelationRepository.findByUserIdAndActive(userId, true);
     final Set<OrganizationResponse> organizations = new HashSet<>();
     for (final UserOrgRelation userOrgRelation : userOrgRelations) {
       organizations.add(

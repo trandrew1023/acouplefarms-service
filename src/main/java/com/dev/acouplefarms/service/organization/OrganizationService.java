@@ -3,6 +3,8 @@ package com.dev.acouplefarms.service.organization;
 import com.dev.acouplefarms.models.organization.Organization;
 import com.dev.acouplefarms.models.organization.OrganizationResponse;
 import com.dev.acouplefarms.models.relation.OrgLocationRelation;
+import com.dev.acouplefarms.models.relation.UserOrgRelation;
+
 import java.util.Optional;
 import java.util.Set;
 
@@ -16,4 +18,6 @@ public interface OrganizationService {
   Organization saveOrganization(final Organization organization);
 
   OrgLocationRelation saveOrgLocationRelation(final OrgLocationRelation orgLocationRelation);
+
+  Set<UserOrgRelation> getUserOrgRelationsByOrganizationId(final Long organizationId);
 }

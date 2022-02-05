@@ -10,8 +10,10 @@ import com.dev.acouplefarms.models.location.LocationStatsCriteria;
 import com.dev.acouplefarms.models.location.SaveLocationStatsCriteria;
 import com.dev.acouplefarms.models.organization.Organization;
 import com.dev.acouplefarms.models.organization.SaveOrganizationCriteria;
+import com.dev.acouplefarms.models.organization.SaveUsersToOrgCriteria;
 import com.dev.acouplefarms.models.relation.UserOrgRelation;
 import com.dev.acouplefarms.models.user.User;
+import com.dev.acouplefarms.models.user.UserResponse;
 import com.dev.acouplefarms.service.location.LocationService;
 import com.dev.acouplefarms.service.organization.OrganizationService;
 import com.dev.acouplefarms.service.user.UserService;
@@ -21,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,10 +103,53 @@ public class OrganizationResource {
     for (final Long userId : saveOrganizationCriteria.getUserIds()) {
       userOrgRelations.add(
           new UserOrgRelation(
-              userId, organizationId, curDate, curDate, userId == user.getId(), true));
+              userId, organizationId, curDate, curDate, userId.equals(user.getId()), true));
     }
     userService.saveAllUserOrgRelations(userOrgRelations);
-    log.info("SAVED ORG ID: " + savedOrganization.getId());
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
+
+  @GetMapping("/users/{organizationId}")
+  public ResponseEntity<?> getOrgUsers(@PathVariable final Long organizationId) {
+    final Set<User> users = userService.getUsersByIds(organizationService.getUserOrgRelationsByOrganizationId(organizationId).stream().map(UserOrgRelation::getUserId).collect(Collectors.toSet()));
+    final Set<UserResponse> usersResponse = users.stream().map(UserResponse::new).collect(Collectors.toSet());
+    return new ResponseEntity<>(usersResponse, HttpStatus.OK);
+  }
+
+  @PostMapping("/users")
+  public ResponseEntity<?> saveUsersToOrg(@RequestBody final SaveUsersToOrgCriteria saveUsersToOrgCriteria, final HttpServletRequest request) {
+    final User user = userService.getUserByUsername(request.getUserPrincipal().getName());
+    if (user == null) {
+      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    }
+    final Long organizationId = saveUsersToOrgCriteria.getOrganizationId();
+    if (organizationService.getOrganizationById(organizationId).isEmpty()) {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+    for (final SaveUsersToOrgCriteria.UserOrgCriteria userOrgCriteria: saveUsersToOrgCriteria.getUserOrgCriteria()) {
+      if (userService.getUserById(userOrgCriteria.getUserId()) == null) {
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+      }
+    }
+    final Date curDate = Date.from(Instant.now());
+    final Map<Long, UserOrgRelation> userIdToUserOrgRelation = organizationService.getUserOrgRelationsByOrganizationId(organizationId).stream().collect(Collectors.toMap(userOrgRelation -> userOrgRelation.getUserId(), userOrgRelation -> userOrgRelation));
+    final Set<UserOrgRelation> userOrgRelations = new HashSet<>();
+    for (final SaveUsersToOrgCriteria.UserOrgCriteria userOrgCriteria: saveUsersToOrgCriteria.getUserOrgCriteria()) {
+      final Long userId = userOrgCriteria.getUserId();
+      if (userIdToUserOrgRelation.containsKey(userId)) {
+        
+      }
+      final UserOrgRelation userOrgRelation = userService.getUserOrgRelation(userId, organizationId);
+      if (userOrgRelation == null) {
+        userOrgRelations.add(
+                new UserOrgRelation(
+                        userId, organizationId, curDate, curDate, userOrgCriteria.isAdmin(), userOrgCriteria.isActive()));
+      } else {
+        userOrgRelations.add(
+                new UserOrgRelation(
+                        userId, organizationId, userOrgRelation.getCreateDate(), curDate, userOrgCriteria.isAdmin(), userOrgCriteria.isActive()));
+      }
+    }
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 
