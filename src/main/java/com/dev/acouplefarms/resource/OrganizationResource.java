@@ -17,6 +17,7 @@ import com.dev.acouplefarms.models.user.UserResponse;
 import com.dev.acouplefarms.service.location.LocationService;
 import com.dev.acouplefarms.service.organization.OrganizationService;
 import com.dev.acouplefarms.service.user.UserService;
+import com.google.common.collect.Sets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
@@ -109,15 +110,22 @@ public class OrganizationResource {
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 
-  @GetMapping("/users/{organizationId}")
+  @GetMapping("/{organizationId}/users")
   public ResponseEntity<?> getOrgUsers(@PathVariable final Long organizationId) {
-    final Set<User> users = userService.getUsersByIds(organizationService.getUserOrgRelationsByOrganizationId(organizationId).stream().map(UserOrgRelation::getUserId).collect(Collectors.toSet()));
-    final Set<UserResponse> usersResponse = users.stream().map(UserResponse::new).collect(Collectors.toSet());
+    final Set<User> users =
+        userService.getUsersByIds(
+            organizationService.getUserOrgRelationsByOrganizationId(organizationId).stream()
+                .map(UserOrgRelation::getUserId)
+                .collect(Collectors.toSet()));
+    final Set<UserResponse> usersResponse =
+        users.stream().map(UserResponse::new).collect(Collectors.toSet());
     return new ResponseEntity<>(usersResponse, HttpStatus.OK);
   }
 
   @PostMapping("/users")
-  public ResponseEntity<?> saveUsersToOrg(@RequestBody final SaveUsersToOrgCriteria saveUsersToOrgCriteria, final HttpServletRequest request) {
+  public ResponseEntity<?> saveUsersToOrg(
+      @RequestBody final SaveUsersToOrgCriteria saveUsersToOrgCriteria,
+      final HttpServletRequest request) {
     final User user = userService.getUserByUsername(request.getUserPrincipal().getName());
     if (user == null) {
       return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -126,34 +134,47 @@ public class OrganizationResource {
     if (organizationService.getOrganizationById(organizationId).isEmpty()) {
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
-    for (final SaveUsersToOrgCriteria.UserOrgCriteria userOrgCriteria: saveUsersToOrgCriteria.getUserOrgCriteria()) {
-      if (userService.getUserById(userOrgCriteria.getUserId()) == null) {
+    final Set<Long> userIds = saveUsersToOrgCriteria.getUserIds();
+    for (final Long userId : userIds) {
+      if (userService.getUserById(userId) == null) {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
       }
     }
     final Date curDate = Date.from(Instant.now());
-    final Map<Long, UserOrgRelation> userIdToUserOrgRelation = organizationService.getUserOrgRelationsByOrganizationId(organizationId).stream().collect(Collectors.toMap(userOrgRelation -> userOrgRelation.getUserId(), userOrgRelation -> userOrgRelation));
-    final Set<UserOrgRelation> userOrgRelations = new HashSet<>();
-    for (final SaveUsersToOrgCriteria.UserOrgCriteria userOrgCriteria: saveUsersToOrgCriteria.getUserOrgCriteria()) {
-      final Long userId = userOrgCriteria.getUserId();
-      if (userIdToUserOrgRelation.containsKey(userId)) {
-        
-      }
-      final UserOrgRelation userOrgRelation = userService.getUserOrgRelation(userId, organizationId);
+    final Map<Long, UserOrgRelation> userIdToUserOrgRelation =
+        organizationService.getUserOrgRelationsByOrganizationId(organizationId).stream()
+            .collect(
+                Collectors.toMap(
+                    userOrgRelation -> userOrgRelation.getUserId(),
+                    userOrgRelation -> userOrgRelation));
+    final Set<UserOrgRelation> userOrgRelationsToSave = new HashSet<>();
+    // set users as inactive
+    final Set<Long> inactiveUserIds =
+        Sets.difference(userIdToUserOrgRelation.keySet(), new HashSet<>(userIds));
+    for (final Long inactiveUserId : inactiveUserIds) {
+      final UserOrgRelation userOrgRelation = userIdToUserOrgRelation.get(inactiveUserId);
+      userOrgRelation.setActive(false);
+      userOrgRelation.setAdmin(false);
+      userOrgRelationsToSave.add(userOrgRelation);
+    }
+    for (final Long userId : userIds) {
+      final UserOrgRelation userOrgRelation = userIdToUserOrgRelation.get(userId);
       if (userOrgRelation == null) {
-        userOrgRelations.add(
-                new UserOrgRelation(
-                        userId, organizationId, curDate, curDate, userOrgCriteria.isAdmin(), userOrgCriteria.isActive()));
-      } else {
-        userOrgRelations.add(
-                new UserOrgRelation(
-                        userId, organizationId, userOrgRelation.getCreateDate(), curDate, userOrgCriteria.isAdmin(), userOrgCriteria.isActive()));
+        userOrgRelationsToSave.add(
+            new UserOrgRelation(userId, organizationId, curDate, curDate, false, true));
+        continue;
+      }
+      if (!userOrgRelation.getActive()) {
+        userOrgRelation.setActive(true);
+        userOrgRelation.setUpdateDate(curDate);
+        userOrgRelationsToSave.add(userOrgRelation);
       }
     }
+    userService.saveAllUserOrgRelations(userOrgRelationsToSave);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 
-  @GetMapping("/locations/{organizationId}")
+  @GetMapping("/{organizationId}/locations")
   public ResponseEntity<?> getOrgLocations(@PathVariable final Long organizationId) {
     return new ResponseEntity<>(locationService.getOrgLocations(organizationId), HttpStatus.OK);
   }
@@ -165,7 +186,8 @@ public class OrganizationResource {
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
     final String nameKey = scrubString(locationColumn.getName());
-    if (locationService.getLocationByNameKeyAndOrganizationId(nameKey, organizationId) != null) {
+    if (locationService.getLocationColumnByNameKeyAndOrganizationId(nameKey, organizationId)
+        != null) {
       return new ResponseEntity<>("name", HttpStatus.CONFLICT);
     }
     final Date curDate = Date.from(Instant.now());
@@ -177,13 +199,13 @@ public class OrganizationResource {
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 
-  @GetMapping("/location-columns/{organizationId}")
+  @GetMapping("/{organizationId}/location-columns")
   public ResponseEntity<?> getOrgLocationColumns(@PathVariable final Long organizationId) {
     return new ResponseEntity<>(
         locationService.getLocationColumnsByOrganizationId(organizationId), HttpStatus.OK);
   }
 
-  @GetMapping("/location-stats/{organizationId}/{date}")
+  @GetMapping("/{organizationId}/location-stats/{date}")
   public ResponseEntity<?> getOrgLocationStats(
       @PathVariable final Long organizationId,
       @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) final Date date) {
@@ -204,7 +226,7 @@ public class OrganizationResource {
     return new ResponseEntity<>(locationStatsResponse, HttpStatus.OK);
   }
 
-  @PostMapping("/location-stats/{organizationId}")
+  @PostMapping("/{organizationId}/location-stats")
   public ResponseEntity<?> saveOrgLocationStats(
       @PathVariable final Long organizationId,
       @RequestBody SaveLocationStatsCriteria saveLocationStatsCriteria) {

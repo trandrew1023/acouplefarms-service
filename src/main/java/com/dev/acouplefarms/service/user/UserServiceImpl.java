@@ -8,7 +8,6 @@ import com.dev.acouplefarms.models.user.User;
 import com.dev.acouplefarms.repository.AuthorityRoleRepository;
 import com.dev.acouplefarms.repository.UserOrgRelationRepository;
 import com.dev.acouplefarms.repository.UserRepository;
-
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -72,7 +71,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
   @Override
   public Set<User> getUsersByIds(final Set<Long> userIds) {
-    log.info(new HashSet<>(userRepository.findAllById(userIds)));
     return new HashSet<>(userRepository.findAllById(userIds));
   }
 

@@ -9,6 +9,9 @@ public interface UserOrgRelationRepository extends JpaRepository<UserOrgRelation
 
   Set<UserOrgRelation> findByOrganizationId(final Long organizationId);
 
+  Set<UserOrgRelation> findByOrganizationIdAndActive(
+      final Long organizationId, final Boolean active);
+
   UserOrgRelation findByUserIdAndOrganizationId(final Long userId, final Long organizationId);
 
   Set<UserOrgRelation> findByUserIdAndActive(final Long userId, final Boolean active);

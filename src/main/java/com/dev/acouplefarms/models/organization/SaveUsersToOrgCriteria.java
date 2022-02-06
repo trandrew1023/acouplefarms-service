@@ -1,21 +1,16 @@
 package com.dev.acouplefarms.models.organization;
 
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.util.Set;
-
+@NoArgsConstructor
 @AllArgsConstructor
 @Getter
+@Setter
 public class SaveUsersToOrgCriteria {
-    private Long organizationId;
-    private Set<UserOrgCriteria> userOrgCriteria;
-
-    @AllArgsConstructor
-    @Getter
-    public class UserOrgCriteria {
-        private Long userId;
-        private boolean admin;
-        private boolean active;
-    }
+  private Long organizationId;
+  private Set<Long> userIds;
 }

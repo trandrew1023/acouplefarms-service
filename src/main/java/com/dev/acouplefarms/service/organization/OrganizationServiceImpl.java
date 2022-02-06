@@ -60,8 +60,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
   @Override
   public Set<UserOrgRelation> getUserOrgRelationsByOrganizationId(final Long organizationId) {
-    log.info(userOrgRelationRepository.findByOrganizationId(organizationId));
-    return userOrgRelationRepository.findByOrganizationId(organizationId);
+    return userOrgRelationRepository.findByOrganizationIdAndActive(organizationId, true);
   }
 
   @Override
@@ -71,7 +70,8 @@ public class OrganizationServiceImpl implements OrganizationService {
 
   @Override
   public Set<OrganizationResponse> getOrganizationsByUserId(final long userId) {
-    final Set<UserOrgRelation> userOrgRelations = userOrgRelationRepository.findByUserIdAndActive(userId, true);
+    final Set<UserOrgRelation> userOrgRelations =
+        userOrgRelationRepository.findByUserIdAndActive(userId, true);
     final Set<OrganizationResponse> organizations = new HashSet<>();
     for (final UserOrgRelation userOrgRelation : userOrgRelations) {
       organizations.add(

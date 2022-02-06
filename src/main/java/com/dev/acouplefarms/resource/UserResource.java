@@ -52,6 +52,7 @@ public class UserResource {
   @Autowired private final OrganizationService organizationService;
   @Autowired private final Environment environment;
 
+  @Autowired
   public UserResource(
       final UserService userService,
       final OrganizationService organizationService,
@@ -83,7 +84,7 @@ public class UserResource {
   }
 
   @GetMapping("/token/refresh")
-  public void refreshToken(HttpServletRequest request, HttpServletResponse response)
+  public void refreshToken(final HttpServletRequest request, final HttpServletResponse response)
       throws IOException {
     final String authorizationHeader = request.getHeader(AUTHORIZATION);
     if (authorizationHeader != null && authorizationHeader.startsWith(AUTHORIZATION_HEADER_KEY)) {

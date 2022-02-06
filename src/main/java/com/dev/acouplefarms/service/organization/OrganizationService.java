@@ -4,7 +4,6 @@ import com.dev.acouplefarms.models.organization.Organization;
 import com.dev.acouplefarms.models.organization.OrganizationResponse;
 import com.dev.acouplefarms.models.relation.OrgLocationRelation;
 import com.dev.acouplefarms.models.relation.UserOrgRelation;
-
 import java.util.Optional;
 import java.util.Set;
 
