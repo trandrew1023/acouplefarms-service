@@ -12,6 +12,8 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.dev.acouplefarms.models.organization.OrganizationResponse;
 import com.dev.acouplefarms.models.relation.UserOrgRelation;
 import com.dev.acouplefarms.models.user.AuthorityRole;
+import com.dev.acouplefarms.models.user.PasswordResetCriteria;
+import com.dev.acouplefarms.models.user.PasswordToken;
 import com.dev.acouplefarms.models.user.User;
 import com.dev.acouplefarms.models.user.UserResponse;
 import com.dev.acouplefarms.service.organization.OrganizationService;
@@ -19,10 +21,12 @@ import com.dev.acouplefarms.service.user.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -34,11 +38,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -51,15 +58,17 @@ public class UserResource {
   @Autowired private final UserService userService;
   @Autowired private final OrganizationService organizationService;
   @Autowired private final Environment environment;
+  @Autowired private final JavaMailSender mailSender;
 
-  @Autowired
   public UserResource(
       final UserService userService,
       final OrganizationService organizationService,
-      final Environment environment) {
+      final Environment environment,
+      final JavaMailSender mailSender) {
     this.userService = userService;
     this.organizationService = organizationService;
     this.environment = environment;
+    this.mailSender = mailSender;
   }
 
   @GetMapping("/{username}")
@@ -145,7 +154,7 @@ public class UserResource {
     user.setCreateDate(Date.from(Instant.now()));
     user.setUpdateDate(Date.from(Instant.now()));
     user.setUsernameKey(scrubString(username));
-    user.setActive(false);
+    user.setActive(true);
     userService.saveUser(user);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
@@ -172,5 +181,68 @@ public class UserResource {
     }
     userService.saveUserOrganizationRelation(userOrgRelation);
     return new ResponseEntity<>(HttpStatus.OK);
+  }
+
+  @PostMapping("/reset-token")
+  public ResponseEntity<?> checkResetToken(@RequestParam("token") final String token) {
+    final PasswordToken passwordToken = userService.getPasswordTokenByToken(token);
+    if (passwordToken == null) {
+      return new ResponseEntity<>(HttpStatus.CONFLICT);
+    }
+    if (passwordToken.getExpiryDate().before(Date.from(Instant.now())) || passwordToken.isUsed()) {
+      return new ResponseEntity<>(HttpStatus.IM_USED);
+    }
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
+
+  @PostMapping("/email/reset-password")
+  public ResponseEntity<?> resetPassword(@RequestParam("username") final String username) {
+    final User user = userService.getUserByUsername(username);
+    if (user == null) {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+    String userResetToken;
+    do {
+      userResetToken = UUID.randomUUID().toString();
+    } while (userService.getPasswordTokenByToken(userResetToken) != null);
+    userService.savePasswordToken(
+        new PasswordToken(
+            user.getId(),
+            userResetToken,
+            Date.from(Instant.now()),
+            Date.from(Instant.now().plus(1, ChronoUnit.DAYS)),
+            false));
+    final SimpleMailMessage email = new SimpleMailMessage();
+    email.setSubject("aCOUPlefarms - Password Reset");
+    email.setText(
+        "Go to the following page to reset your password http://localhost:3000/reset-password?token="
+            + userResetToken);
+    email.setTo(user.getEmail());
+    email.setFrom(environment.getProperty("spring.email"));
+    mailSender.send(email);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
+
+  @PostMapping("/reset-password")
+  public ResponseEntity<?> updatePassword(
+      @RequestBody PasswordResetCriteria passwordResetCriteria) {
+    final PasswordToken passwordToken =
+        userService.getPasswordTokenByToken(passwordResetCriteria.getToken());
+    if (passwordToken == null) {
+      return new ResponseEntity<>(HttpStatus.CONFLICT);
+    }
+    if (passwordToken.getExpiryDate().before(Date.from(Instant.now())) || passwordToken.isUsed()) {
+      return new ResponseEntity<>(HttpStatus.IM_USED);
+    }
+    final User user = userService.getUserById(passwordToken.getUserId());
+    if (user == null) {
+      return new ResponseEntity<>(HttpStatus.CONFLICT);
+    }
+    passwordToken.setUsed(true);
+    user.setUpdateDate(Date.from(Instant.now()));
+    user.setPassword(passwordResetCriteria.getNewPassword());
+    userService.saveUser(user);
+    userService.savePasswordToken(passwordToken);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 }

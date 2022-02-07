@@ -4,8 +4,10 @@ import static com.dev.acouplefarms.util.StringUtil.scrubString;
 
 import com.dev.acouplefarms.models.relation.UserOrgRelation;
 import com.dev.acouplefarms.models.user.AuthorityRole;
+import com.dev.acouplefarms.models.user.PasswordToken;
 import com.dev.acouplefarms.models.user.User;
 import com.dev.acouplefarms.repository.AuthorityRoleRepository;
+import com.dev.acouplefarms.repository.PasswordTokenRepository;
 import com.dev.acouplefarms.repository.UserOrgRelationRepository;
 import com.dev.acouplefarms.repository.UserRepository;
 import java.util.HashSet;
@@ -32,6 +34,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
   private final AuthorityRoleRepository authorityRoleRepository;
   private final UserRepository userRepository;
   private final UserOrgRelationRepository userOrgRelationRepository;
+  private final PasswordTokenRepository passwordTokenRepository;
   private final PasswordEncoder passwordEncoder;
 
   @Override
@@ -62,6 +65,11 @@ public class UserServiceImpl implements UserService, UserDetailsService {
       throw new EntityNotFoundException("User not found wth id: " + id);
     }
     return user.get();
+  }
+
+  @Override
+  public PasswordToken getPasswordTokenByToken(final String token) {
+    return passwordTokenRepository.findByToken(token);
   }
 
   @Override
@@ -103,6 +111,11 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     final AuthorityRole authorityRole =
         authorityRoleRepository.getAuthorityRoleByRoleName(roleName);
     user.getGrantedAuthorities().add(authorityRole);
+  }
+
+  @Override
+  public void savePasswordToken(final PasswordToken passwordToken) {
+    passwordTokenRepository.save(passwordToken);
   }
 
   @Override
