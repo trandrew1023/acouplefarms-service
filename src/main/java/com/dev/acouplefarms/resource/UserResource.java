@@ -215,7 +215,7 @@ public class UserResource {
     final SimpleMailMessage email = new SimpleMailMessage();
     email.setSubject("aCOUPlefarms - Password Reset");
     email.setText(
-        "Go to the following page to reset your password"
+        "Go to the following page to reset your password "
             + environment.getProperty("spring.app.url")
             + "/reset-password?token="
             + userResetToken);
