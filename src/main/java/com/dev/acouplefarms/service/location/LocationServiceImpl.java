@@ -28,8 +28,8 @@ public class LocationServiceImpl implements LocationService {
   }
 
   @Override
-  public Location getLocationById() {
-    return null;
+  public Location getLocationById(final Long locationId) {
+    return locationRepository.getById(locationId);
   }
 
   @Override
@@ -46,6 +46,11 @@ public class LocationServiceImpl implements LocationService {
   @Override
   public LocationColumnRelation saveLocationColumnRelation() {
     return null;
+  }
+
+  @Override
+  public LocationColumn getLocationColumnById(final Long id) {
+    return locationColumnRepository.getById(id);
   }
 
   @Override
@@ -68,6 +73,11 @@ public class LocationServiceImpl implements LocationService {
   public Set<LocationStat> getLocationStatsByLocationIdAndDate(
       final Long locationId, final Date date) {
     return locationStatRepository.findByLocationIdAndDate(locationId, date);
+  }
+
+  @Override
+  public void deleteLocationColumn(final LocationColumn locationColumn) {
+    locationColumnRepository.delete(locationColumn);
   }
 
   @Override

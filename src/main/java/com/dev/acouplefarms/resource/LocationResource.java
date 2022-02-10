@@ -53,4 +53,24 @@ public class LocationResource {
     locationService.saveLocation(location);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
+
+  @PostMapping("/edit")
+  public ResponseEntity<?> editLocation(@RequestBody final Location location) {
+    if (locationService.getLocationById(location.getId()) == null) {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+    final String nameKey = scrubString(location.getName());
+    final Long organizationId = location.getOrganizationId();
+    if (locationService.getLocationByNameKeyAndOrganizationId(nameKey, organizationId) != null) {
+      return new ResponseEntity<>(HttpStatus.CONFLICT);
+    }
+    if (organizationService.getOrganizationById(organizationId).isEmpty()) {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+    final Date curDate = Date.from(Instant.now());
+    location.setNameKey(nameKey);
+    location.setUpdateDate(curDate);
+    locationService.saveLocation(location);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
 }

@@ -10,13 +10,15 @@ import java.util.Set;
 public interface LocationService {
   Location saveLocation(final Location location);
 
-  Location getLocationById();
+  Location getLocationById(final Long id);
 
   Location getLocationByNameKeyAndOrganizationId(final String nameKey, final Long organizationId);
 
   Set<Location> getOrgLocations(final Long organizationId);
 
   LocationColumnRelation saveLocationColumnRelation();
+
+  LocationColumn getLocationColumnById(final Long id);
 
   LocationColumn saveLocationColumn(final LocationColumn locationColumn);
 
@@ -26,6 +28,8 @@ public interface LocationService {
       final String nameKey, final Long organizationId);
 
   Set<LocationStat> getLocationStatsByLocationIdAndDate(final Long locationId, final Date date);
+
+  void deleteLocationColumn(final LocationColumn locationColumn);
 
   void saveLocationStats(final Set<LocationStat> locationStats);
 }
