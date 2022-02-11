@@ -38,7 +38,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -184,14 +183,20 @@ public class OrganizationResource {
     return new ResponseEntity<>(locationService.getOrgLocations(organizationId), HttpStatus.OK);
   }
 
-  @PutMapping("/location-column")
+  @PostMapping("/location-column/edit")
   public ResponseEntity<?> editLocationColumn(@RequestBody final LocationColumn locationColumn) {
     if (locationService.getLocationColumnById(locationColumn.getId()) == null) {
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
+    final String nameKey = scrubString(locationColumn.getName());
+    if (locationService.getLocationColumnByNameKeyAndOrganizationId(
+            nameKey, locationColumn.getOrganizationId())
+        != null) {
+      return new ResponseEntity<>("name", HttpStatus.CONFLICT);
+    }
     final Date curDate = Date.from(Instant.now());
     locationColumn.setUpdateDate(curDate);
-    locationColumn.setNameKey(scrubString(locationColumn.getName()));
+    locationColumn.setNameKey(nameKey);
     locationService.saveLocationColumn(locationColumn);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
@@ -220,7 +225,6 @@ public class OrganizationResource {
     locationColumn.setNameKey(nameKey);
     locationColumn.setCreateDate(curDate);
     locationColumn.setUpdateDate(curDate);
-    locationColumn.setActive(true);
     locationService.saveLocationColumn(locationColumn);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
