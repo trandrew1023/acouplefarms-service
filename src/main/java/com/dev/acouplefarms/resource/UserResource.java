@@ -143,7 +143,7 @@ public class UserResource {
         || username.isBlank()
         || user.getFirstname().isBlank()
         || user.getLastname().isBlank()) {
-      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+      return new ResponseEntity<>("username", HttpStatus.BAD_REQUEST);
     }
     if (userService.getUserByUsername(username) != null) {
       return new ResponseEntity<>("username", HttpStatus.CONFLICT);
@@ -196,8 +196,14 @@ public class UserResource {
   }
 
   @PostMapping("/email/reset-password")
-  public ResponseEntity<?> resetPassword(@RequestParam("username") final String username) {
-    final User user = userService.getUserByUsername(username);
+  public ResponseEntity<?> resetPassword(
+      @RequestParam("username") final String username, @RequestParam("email") final String email) {
+    final User user;
+    if (username.isBlank()) {
+      user = userService.getUserByEmail(email);
+    } else {
+      user = userService.getUserByUsername(username);
+    }
     if (user == null) {
       return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
@@ -212,16 +218,16 @@ public class UserResource {
             Date.from(Instant.now()),
             Date.from(Instant.now().plus(1, ChronoUnit.DAYS)),
             false));
-    final SimpleMailMessage email = new SimpleMailMessage();
-    email.setSubject("aCOUPlefarms - Password Reset");
-    email.setText(
+    final SimpleMailMessage mailMessage = new SimpleMailMessage();
+    mailMessage.setSubject("aCOUPlefarms - Password Reset");
+    mailMessage.setText(
         "Go to the following page to reset your password "
             + environment.getProperty("spring.app.url")
             + "/reset-password?token="
             + userResetToken);
-    email.setTo(user.getEmail());
-    email.setFrom(environment.getProperty("spring.email"));
-    mailSender.send(email);
+    mailMessage.setTo(user.getEmail());
+    mailMessage.setFrom(environment.getProperty("spring.email"));
+    mailSender.send(mailMessage);
     return new ResponseEntity<>(HttpStatus.NO_CONTENT);
   }
 
