@@ -34,7 +34,7 @@ public class ImageResource {
     final User user = userService.getUserByUsername(request.getUserPrincipal().getName());
     final Image image = imageService.getProfileImage(user.getId());
     if (image == null) {
-      return ResponseEntity.notFound().build();
+      return ResponseEntity.ok().build();
     }
     return ResponseEntity.ok().body(image);
   }
